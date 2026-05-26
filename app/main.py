@@ -45,7 +45,11 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     incidents = await get_recent_incidents(limit=20)
-    return templates.TemplateResponse("index.html", {"request": request, "incidents": incidents})
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"incidents": incidents}
+    )
 
 
 @app.get("/metrics")
