@@ -1,37 +1,59 @@
 import json
 import time
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, List
 import openai
 from tenacity import retry, stop_after_attempt, wait_exponential
+import aiodocker
 
 from app.config import settings, logger
 
-# Initialize async client
 client = openai.AsyncOpenAI(
     api_key=settings.AI_API_KEY if settings.AI_API_KEY else "dummy",
     base_url=settings.AI_BASE_URL
 )
 
-PROMPT_TEMPLATE = """
-You are an expert site reliability engineer. A Docker container has crashed.
-Here are the pre-crash logs and environment details.
-Your task is to classify the root cause of the crash and provide a concrete, actionable suggested fix.
+SYSTEM_PROMPT = """
+You are an expert site reliability engineer resolving a Docker container crash.
+You are now an active agent in a ReAct (Reasoning + Acting) loop.
 
-Container Name: {container_name}
-Image Hash: {image_hash}
+You will be provided with the initial pre-crash logs and environment details.
 
-Environment Variables Snapshot:
-{env_snapshot}
-
-Pre-Crash Logs (last 5 minutes):
-{logs}
-
-Please respond strictly with a JSON object in this exact format, with no markdown code blocks wrapping it:
-{{
+If you have enough information to diagnose the issue and provide a fix, respond strictly with this JSON format:
+{
     "root_cause": "brief explanation of why the container crashed",
-    "suggested_fix": "a concrete fix (e.g. command, env var change, or docker-compose edit)"
-}}
+    "suggested_fix": "a concrete docker command to fix it (e.g. docker restart xyz, docker network disconnect...)"
+}
+
+If you need more context before deciding on a fix, you can request it by returning one of these JSON actions:
+{
+    "action": "inspect_container",
+    "container_id": "the container id or name"
+}
+OR
+{
+    "action": "get_stats",
+    "container_id": "the container id or name"
+}
+
+Do not wrap your JSON in markdown code blocks. Output ONLY valid JSON.
 """
+
+async def execute_action(action: str, container_id: str) -> str:
+    """Helper to execute diagnostic actions via aiodocker"""
+    try:
+        async with aiodocker.Docker() as docker:
+            container = await docker.containers.get(container_id)
+            if action == "inspect_container":
+                info = await container.show()
+                # Truncate to avoid massive tokens
+                return json.dumps(info)[:3000]
+            elif action == "get_stats":
+                stats = await container.stats(stream=False)
+                return json.dumps(stats[0] if stats else {})[:3000]
+            else:
+                return f"Unknown action: {action}"
+    except Exception as e:
+        return f"Action {action} failed: {e}"
 
 @retry(
     stop=stop_after_attempt(3),
@@ -44,45 +66,76 @@ async def classify_crash(
     logs: str,
     env_snapshot: str
 ) -> Tuple[Dict[str, str], int]:
-    """
-    Classify the crash using AI.
-    Returns a tuple of (parsed_json_dict, latency_ms).
-    """
+    
     start_time = time.time()
     
-    prompt = PROMPT_TEMPLATE.format(
-        container_name=container_name,
-        image_hash=image_hash,
-        env_snapshot=env_snapshot,
-        logs=logs
-    )
-    
-    try:
-        response = await client.chat.completions.create(
-            model=settings.AI_MODEL,
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that outputs JSON."},
-                {"role": "user", "content": prompt}
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.2,
-            max_tokens=500
-        )
-        
-        latency_ms = int((time.time() - start_time) * 1000)
-        
-        raw_content = response.choices[0].message.content
-        if not raw_content:
-            raise ValueError("Empty response from AI")
-            
-        parsed = json.loads(raw_content)
-        
-        # Ensure keys exist
-        root_cause = parsed.get("root_cause", "Unknown root cause")
-        suggested_fix = parsed.get("suggested_fix", "No fix suggested")
-        
-        return {"root_cause": root_cause, "suggested_fix": suggested_fix}, latency_ms
+    initial_user_prompt = f"""
+Container Name: {container_name}
+Image Hash: {image_hash}
 
-    except Exception as e:
-        logger.error(f"Failed to classify crash for {container_name}: {e}")
-        raise e
+Environment Variables Snapshot:
+{env_snapshot}
+
+Pre-Crash Logs (last 5 minutes):
+{logs}
+"""
+
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": initial_user_prompt}
+    ]
+    
+    max_iterations = 3
+    root_cause = "Unknown root cause"
+    suggested_fix = "No fix suggested"
+    
+    for i in range(max_iterations):
+        logger.info(f"Agentic loop iteration {i+1}/{max_iterations} for {container_name}")
+        try:
+            response = await client.chat.completions.create(
+                model=settings.AI_MODEL,
+                messages=messages,
+                response_format={"type": "json_object"},
+                temperature=0.2,
+                max_tokens=500
+            )
+            
+            raw_content = response.choices[0].message.content
+            if not raw_content:
+                raise ValueError("Empty response from AI")
+                
+            parsed = json.loads(raw_content)
+            
+            # Did the AI output a final fix?
+            if "root_cause" in parsed and "suggested_fix" in parsed:
+                root_cause = parsed["root_cause"]
+                suggested_fix = parsed["suggested_fix"]
+                break
+                
+            # Did the AI ask for an action?
+            elif "action" in parsed and "container_id" in parsed:
+                action = parsed["action"]
+                cid = parsed["container_id"]
+                logger.info(f"AI requested action: {action} on {cid}")
+                
+                # Execute action
+                action_result = await execute_action(action, cid)
+                
+                # Append to messages for next iteration
+                messages.append({"role": "assistant", "content": raw_content})
+                messages.append({
+                    "role": "user", 
+                    "content": f"Result of {action}:\n{action_result}\nPlease proceed with diagnosis."
+                })
+            else:
+                # Malformed output, just break
+                logger.warning(f"Malformed AI response: {parsed}")
+                break
+                
+        except Exception as e:
+            logger.error(f"Failed to communicate with AI for {container_name}: {e}")
+            raise e
+
+    # If loop exhausted without a fix, we just return the defaults or last parsed
+    latency_ms = int((time.time() - start_time) * 1000)
+    return {"root_cause": root_cause, "suggested_fix": suggested_fix}, latency_ms

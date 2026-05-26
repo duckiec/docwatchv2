@@ -23,6 +23,9 @@ RUN pip install --user --no-cache-dir -r requirements.txt
 FROM python:3.11-slim
 WORKDIR /app
 
+# Install docker CLI for active remediation
+RUN apt-get update && apt-get install -y docker.io docker-compose && rm -rf /var/lib/apt/lists/*
+
 # Ensure local pip bin is in PATH
 ENV PATH=/root/.local/bin:$PATH
 

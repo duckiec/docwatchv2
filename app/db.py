@@ -48,6 +48,13 @@ async def get_recent_incidents(limit: int = 50):
         )
         return result.scalars().all()
 
+async def get_incident_by_id(incident_id: int):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Incident).where(Incident.id == incident_id)
+        )
+        return result.scalars().first()
+
 async def save_incident(incident: Incident):
     async with AsyncSessionLocal() as session:
         session.add(incident)
