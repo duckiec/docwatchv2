@@ -116,7 +116,8 @@ async def listen_to_docker_events():
         async with aiodocker.Docker() as docker:
             # We use events stream
             subscriber = docker.events.subscribe()
-            async for event in subscriber:
+            while True:
+                event = await subscriber.get()
                 # We care about container 'die' events with non-zero exit status
                 if event.get("Type") == "container" and event.get("Action") == "die":
                     attrs = event.get("Actor", {}).get("Attributes", {})
