@@ -1,8 +1,8 @@
 # Stage 1: Build Tailwind CSS using Standalone CLI
-FROM alpine:3.19 AS tailwind-build
+FROM python:3.11-slim AS tailwind-build
 WORKDIR /app
 # Download standalone CLI for Linux x64
-RUN wget -qO tailwindcss https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 \
+RUN apt-get update && apt-get install -y wget && wget -qO tailwindcss https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.17/tailwindcss-linux-x64 \
     && chmod +x tailwindcss
 
 # Copy templates and input css
