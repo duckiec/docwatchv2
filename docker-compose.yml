@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  docwatch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: docwatch
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - docwatch_data:/data
+    environment:
+      # Required settings
+      - AI_API_KEY=${AI_API_KEY:-dummy_key_change_me}
+      - DATABASE_URL=sqlite+aiosqlite:////data/docwatch.db
+      
+      # Optional settings override (uncomment to use)
+      # - AI_BASE_URL=https://api.openai.com/v1
+      # - AI_MODEL=gpt-4o
+      # - WEBHOOK_URL=https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  docwatch_data:
