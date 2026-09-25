@@ -13,9 +13,7 @@ from app.db import init_db, get_recent_incidents, get_incident_by_id
 from app.docker_events import listen_to_docker_events
 from app.events import register_sse_client, unregister_sse_client
 from app.remediation import execute_docker_fix
-
-# Background task reference to prevent garbage collection
-_bg_tasks = set()
+from app.tasks import create_background_task, cancel_all_tasks
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,15 +22,13 @@ async def lifespan(app: FastAPI):
     await init_db()
     
     logger.info("Starting Docker event listener task...")
-    task = asyncio.create_task(listen_to_docker_events())
-    _bg_tasks.add(task)
-    task.add_done_callback(_bg_tasks.discard)
+    create_background_task(listen_to_docker_events(), name="docker_event_listener")
     
     yield
     
     # Shutdown
     logger.info("Shutting down DocWatch V2...")
-    task.cancel()
+    cancel_all_tasks()
 
 app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
 

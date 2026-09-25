@@ -7,6 +7,7 @@ import aiodocker
 from app.config import settings, logger
 from app.db import Incident, save_incident
 from app.ai_client import classify_crash
+from app.security import mask_sensitive_env_vars
 from app.alert_dispatcher import dispatch_webhook
 from app.metrics import CRASH_COUNT, AI_LATENCY, MONITORED_CONTAINERS
 
@@ -43,10 +44,10 @@ async def handle_crash_event(container_id: str, docker: aiodocker.Docker):
         image_hash = container_info.get("Image", "unknown")
         
         # Env snapshot
-        env_vars = container_info.get("Config", {}).get("Env", [])
-        # Mask sensitive potential env vars for safety? For now, snapshot as is, or maybe just simple ones.
-        # We will snapshot the whole env for completeness, as it's a self-hosted tool.
-        env_snapshot = json.dumps(env_vars)
+        raw_env_vars = container_info.get("Config", {}).get("Env", [])
+        # Mask sensitive environment variables
+        safe_env_vars = mask_sensitive_env_vars(raw_env_vars)
+        env_snapshot = json.dumps(safe_env_vars)
 
         # Get logs from the last 5 minutes (300 seconds)
         since_time = int(now - 300)
@@ -99,7 +100,8 @@ async def handle_crash_event(container_id: str, docker: aiodocker.Docker):
             "suggested_fix": classification["suggested_fix"],
             "timestamp": saved_incident.timestamp.isoformat()
         }
-        asyncio.create_task(dispatch_webhook(webhook_payload))
+        from app.tasks import create_background_task
+        create_background_task(dispatch_webhook(webhook_payload), name=f"webhook_{saved_incident.id}")
         
         from app.events import publish_incident
         publish_incident(saved_incident)
@@ -110,22 +112,41 @@ async def handle_crash_event(container_id: str, docker: aiodocker.Docker):
 async def listen_to_docker_events():
     """
     Background task to listen to Docker socket events.
+    Includes a retry loop to recover if the Docker daemon restarts or the socket drops.
     """
     logger.info("Starting Docker event listener...")
-    try:
-        async with aiodocker.Docker() as docker:
-            # We use events stream
-            subscriber = docker.events.subscribe()
-            while True:
-                event = await subscriber.get()
-                # We care about container 'die' events with non-zero exit status
-                if event.get("Type") == "container" and event.get("Action") == "die":
-                    attrs = event.get("Actor", {}).get("Attributes", {})
-                    exit_code = attrs.get("exitCode", "0")
-                    if exit_code != "0":
-                        container_id = event.get("Actor", {}).get("ID")
-                        # Fire and forget handle_crash_event
-                        asyncio.create_task(handle_crash_event(container_id, docker))
-    except Exception as e:
-        logger.error(f"Docker event listener failed: {e}")
-        # Could implement a retry loop here if docker socket drops
+    from app.tasks import create_background_task
+
+    while True:
+        try:
+            async with aiodocker.Docker() as docker:
+                # Test connection
+                await docker.system.info()
+                logger.info("Successfully connected to Docker socket.")
+
+                # We use events stream
+                subscriber = docker.events.subscribe()
+                while True:
+                    event = await subscriber.get()
+                    if event is None:
+                        # Stream closed
+                        logger.warning("Docker event stream closed unexpectedly.")
+                        break
+
+                    # We care about container 'die' events with non-zero exit status
+                    if event.get("Type") == "container" and event.get("Action") == "die":
+                        attrs = event.get("Actor", {}).get("Attributes", {})
+                        exit_code = attrs.get("exitCode", "0")
+                        if exit_code != "0":
+                            container_id = event.get("Actor", {}).get("ID")
+                            # Create background task for crash handling
+                            create_background_task(
+                                handle_crash_event(container_id, docker),
+                                name=f"handle_crash_{container_id}"
+                            )
+        except asyncio.CancelledError:
+            logger.info("Docker event listener task cancelled.")
+            break
+        except Exception as e:
+            logger.error(f"Docker event listener encountered an error: {e}. Retrying in 5 seconds...")
+            await asyncio.sleep(5)

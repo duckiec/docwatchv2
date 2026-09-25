@@ -1,9 +1,26 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="mb-8">
-    <h1 class="text-3xl font-bold text-white mb-2 tracking-tight">Dashboard</h1>
-    <p class="text-gray-400">Real-time monitoring of container crashes and AI-driven root cause analysis.</p>
+<div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div>
+        <h1 class="text-3xl font-bold text-white mb-2 tracking-tight flex items-center">
+            <svg class="w-8 h-8 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            Dashboard
+        </h1>
+        <p class="text-gray-400 text-sm">Real-time monitoring of container crashes and AI-driven root cause analysis.</p>
+    </div>
+
+    <!-- Simple client-side search/filter -->
+    <div class="relative max-w-sm w-full md:w-64">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+        </div>
+        <input type="text" id="incident-search" placeholder="Filter incidents..."
+            class="block w-full pl-10 pr-3 py-2 border border-gray-700 rounded-lg leading-5 bg-gray-900 text-gray-300 placeholder-gray-500 focus:outline-none focus:bg-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm transition-colors"
+            onkeyup="filterIncidents()">
+    </div>
 </div>
 
 <!-- SSE Connection and Incident List -->
@@ -31,5 +48,23 @@
             emptyState.remove();
         }
     });
+
+    // Client-side filtering logic
+    function filterIncidents() {
+        const input = document.getElementById('incident-search');
+        const filter = input.value.toLowerCase();
+        const container = document.getElementById('incidents-container');
+        const incidents = container.getElementsByClassName('incident-card');
+
+        for (let i = 0; i < incidents.length; i++) {
+            const card = incidents[i];
+            const textContent = card.textContent || card.innerText;
+            if (textContent.toLowerCase().indexOf(filter) > -1) {
+                card.style.display = "";
+            } else {
+                card.style.display = "none";
+            }
+        }
+    }
 </script>
 {% endblock %}
