@@ -1,80 +1,88 @@
-<div class="incident-card bg-gray-900 rounded-xl border border-red-500/20 shadow-lg overflow-hidden transition-all hover:border-red-500/40 hover:shadow-red-500/10 group">
+<div class="incident-card bg-zinc-900/60 backdrop-blur-md rounded-2xl border border-red-500/20 shadow-[0_4px_24px_rgb(239,68,68,0.05)] overflow-hidden transition-all duration-300 hover:border-red-500/50 hover:shadow-[0_4px_32px_rgb(239,68,68,0.15)] group relative z-10">
+
+    <!-- Edge Highlight -->
+    <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-500 to-red-900 opacity-80"></div>
+
     <!-- Header -->
-    <div class="px-6 py-4 border-b border-gray-800 bg-gray-900/80 flex flex-wrap items-center justify-between gap-4 backdrop-blur-sm">
-        <div class="flex items-center space-x-3">
+    <div class="px-6 py-5 border-b border-white/5 bg-zinc-950/40 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-4">
             <span class="flex h-3 w-3 relative">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-[0_0_8px_rgb(239,68,68,0.8)]"></span>
             </span>
-            <h3 class="text-lg font-semibold text-gray-100 flex items-center">
+            <h3 class="text-xl font-bold text-white flex items-center font-mono tracking-tight">
                 {{ incident.container_name }}
             </h3>
+            <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest bg-zinc-800 text-zinc-400 border border-zinc-700">
+                {{ incident.image_hash[:12] if incident.image_hash else 'unknown' }}
+            </span>
         </div>
-        <div class="text-sm text-gray-400 flex items-center space-x-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <div class="text-xs font-mono text-zinc-500 flex items-center space-x-2 bg-zinc-900/50 px-3 py-1.5 rounded-lg border border-white/5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span>{{ incident.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') }}</span>
         </div>
     </div>
     
     <div class="p-6">
         <!-- Root Cause -->
-        <div class="mb-6">
-            <h4 class="text-sm uppercase tracking-wider text-red-400 font-semibold mb-2 flex items-center">
-                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                AI Root Cause Analysis
+        <div class="mb-8">
+            <h4 class="text-xs uppercase tracking-[0.15em] text-red-400 font-bold mb-3 flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                AI Diagnostics
             </h4>
-            <div class="bg-red-500/5 border border-red-500/10 rounded-lg p-4 text-gray-300">
+            <div class="bg-red-950/20 border border-red-500/10 rounded-xl p-5 text-zinc-300 leading-relaxed text-sm">
                 {{ incident.root_cause }}
             </div>
         </div>
 
         <!-- Suggested Fix -->
-        <div class="mb-6">
-            <div class="flex justify-between items-end mb-2">
-                <h4 class="text-sm uppercase tracking-wider text-emerald-400 font-semibold flex items-center">
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                    Suggested Fix
+        <div class="mb-8">
+            <div class="flex justify-between items-end mb-3">
+                <h4 class="text-xs uppercase tracking-[0.15em] text-emerald-400 font-bold flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    Autonomous Remediation
                 </h4>
                 <div class="flex items-center space-x-2">
-                    <button onclick="copyToClipboard(`{{ incident.suggested_fix | replace('`', '\\`') }}`)" class="text-xs flex items-center space-x-1 text-gray-400 hover:text-white transition-colors px-2 py-1 bg-gray-800 rounded border border-gray-700">
+                    <button onclick="copyToClipboard(`{{ incident.suggested_fix | replace('`', '\\`') }}`)" class="text-xs flex items-center space-x-1 text-zinc-400 hover:text-white transition-all px-3 py-1.5 bg-zinc-800/50 rounded-lg border border-zinc-700 hover:border-zinc-500">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                        <span>Copy Fix</span>
+                        <span>Copy</span>
                     </button>
                     <!-- Execute Fix Button -->
                     <button hx-post="/api/incidents/{{ incident.id }}/execute-fix" 
                             hx-swap="outerHTML" 
                             hx-indicator="#spinner-{{ incident.id }}"
-                            class="text-xs flex items-center space-x-1 text-emerald-400 hover:text-emerald-300 transition-colors px-2 py-1 bg-emerald-500/10 rounded border border-emerald-500/20">
+                            class="text-xs flex items-center space-x-1.5 text-emerald-400 hover:text-emerald-300 font-bold tracking-wide transition-all px-3 py-1.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_20px_rgba(16,185,129,0.2)]">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         <span>Execute Fix</span>
-                        <svg id="spinner-{{ incident.id }}" class="htmx-indicator animate-spin h-3 w-3 ml-1 text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <svg id="spinner-{{ incident.id }}" class="htmx-indicator animate-spin h-3.5 w-3.5 ml-1 text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     </button>
                 </div>
             </div>
-            <div class="bg-gray-950 border border-gray-800 rounded-lg p-4 font-mono text-sm text-emerald-300 overflow-x-auto whitespace-pre-wrap">
+            <div class="bg-zinc-950 border border-white/5 rounded-xl p-4 font-mono text-sm text-emerald-300 overflow-x-auto whitespace-pre-wrap shadow-inner relative group/code">
+                <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent pointer-events-none rounded-xl"></div>
                 {{ incident.suggested_fix }}
             </div>
         </div>
 
         <!-- Details (Logs & Env) Accordion via details/summary -->
-        <details class="group/details bg-gray-800/30 rounded-lg border border-gray-700/50 p-2">
-            <summary class="cursor-pointer text-sm font-medium text-gray-400 hover:text-white flex items-center transition-colors select-none p-2 rounded hover:bg-gray-800/50">
-                <svg class="w-4 h-4 mr-2 transition-transform duration-200 group-open/details:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                View Diagnostics (Logs & Environment)
+        <details class="group/details bg-zinc-900/50 rounded-xl border border-white/5 transition-all duration-300">
+            <summary class="cursor-pointer text-xs uppercase tracking-wider font-bold text-zinc-500 hover:text-zinc-300 flex items-center select-none p-4 rounded-xl hover:bg-zinc-800/50 transition-colors">
+                <svg class="w-4 h-4 mr-3 transition-transform duration-300 group-open/details:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                Raw Telemetry (Logs & Env)
             </summary>
             
-            <div class="mt-4 p-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="p-4 pt-0 grid grid-cols-1 lg:grid-cols-2 gap-6 opacity-0 translate-y-2 group-open/details:animate-[fadeIn_0.3s_ease-out_forwards]">
                 <!-- Logs -->
                 <div>
-                    <h5 class="text-xs text-gray-500 mb-2 uppercase tracking-wider">Pre-Crash Logs</h5>
-                    <div class="bg-gray-950 border border-gray-800 rounded-lg p-3 h-64 overflow-y-auto font-mono text-xs text-gray-400 whitespace-pre-wrap">
+                    <h5 class="text-[10px] text-zinc-500 mb-2 uppercase tracking-widest font-bold">Pre-Crash Logs</h5>
+                    <div class="bg-zinc-950 border border-zinc-800/50 rounded-xl p-4 h-64 overflow-y-auto font-mono text-xs text-zinc-400 whitespace-pre-wrap shadow-inner custom-scrollbar">
                         {{ incident.logs_context }}
                     </div>
                 </div>
                 <!-- Env -->
                 <div>
-                    <h5 class="text-xs text-gray-500 mb-2 uppercase tracking-wider">Environment Snapshot</h5>
-                    <div class="bg-gray-950 border border-gray-800 rounded-lg p-3 h-64 overflow-y-auto font-mono text-xs text-gray-400 whitespace-pre-wrap">
+                    <h5 class="text-[10px] text-zinc-500 mb-2 uppercase tracking-widest font-bold">Environment State</h5>
+                    <div class="bg-zinc-950 border border-zinc-800/50 rounded-xl p-4 h-64 overflow-y-auto font-mono text-xs text-zinc-400 whitespace-pre-wrap shadow-inner custom-scrollbar">
                         {{ incident.env_snapshot }}
                     </div>
                 </div>

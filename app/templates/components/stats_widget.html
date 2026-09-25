@@ -1,0 +1,23 @@
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 relative z-10">
+    <div class="group bg-zinc-900/40 backdrop-blur-xl border border-white/5 hover:border-blue-500/30 rounded-3xl p-6 flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all overflow-hidden relative">
+        <div class="absolute -right-10 -top-10 bg-blue-500/10 w-32 h-32 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
+        <div class="relative">
+            <p class="text-xs font-bold text-zinc-500 mb-2 tracking-[0.2em] uppercase">Total Intercepts</p>
+            <h3 class="text-4xl font-black text-white tracking-tighter">{{ stats.total_crashes | default('0') }}</h3>
+        </div>
+        <div class="relative p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
+            <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        </div>
+    </div>
+
+    <div class="group bg-zinc-900/40 backdrop-blur-xl border border-white/5 hover:border-emerald-500/30 rounded-3xl p-6 flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all overflow-hidden relative">
+        <div class="absolute -right-10 -top-10 bg-emerald-500/10 w-32 h-32 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
+        <div class="relative">
+            <p class="text-xs font-bold text-zinc-500 mb-2 tracking-[0.2em] uppercase">AI Diagnosis Speed</p>
+            <h3 class="text-4xl font-black text-white tracking-tighter">{{ stats.avg_latency | default('N/A') }}</h3>
+        </div>
+        <div class="relative p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
+            <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+    </div>
+</div>

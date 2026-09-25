@@ -65,10 +65,26 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     incidents = await get_recent_incidents(limit=20)
+
+    # Pre-fetch stats for initial load
+    from app.metrics import CRASH_COUNT, AI_LATENCY
+    crashes = int(CRASH_COUNT._value.get() if hasattr(CRASH_COUNT, '_value') else 0)
+    avg_latency = "N/A"
+    try:
+        if hasattr(AI_LATENCY, '_sum') and hasattr(AI_LATENCY, '_count'):
+            s = AI_LATENCY._sum.get()
+            c = AI_LATENCY._count.get()
+            if c > 0:
+                avg_latency = f"{(s / c):.2f}s"
+    except Exception:
+        pass
+
+    stats = {"total_crashes": crashes, "avg_latency": avg_latency}
+
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"incidents": incidents}
+        context={"incidents": incidents, "stats": stats}
     )
 
 
@@ -76,6 +92,31 @@ async def index(request: Request):
 async def metrics():
     data = generate_latest()
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
+
+@app.get("/api/stats")
+async def get_dashboard_stats():
+    """
+    Returns high-level statistics for the UI widgets via HTMX polling or initial load.
+    """
+    from app.metrics import CRASH_COUNT, AI_LATENCY
+
+    crashes = int(CRASH_COUNT._value.get() if hasattr(CRASH_COUNT, '_value') else 0)
+
+    # Calculate simple avg latency from the histogram if available, or just fallback
+    avg_latency = "N/A"
+    try:
+        if hasattr(AI_LATENCY, '_sum') and hasattr(AI_LATENCY, '_count'):
+            s = AI_LATENCY._sum.get()
+            c = AI_LATENCY._count.get()
+            if c > 0:
+                avg_latency = f"{(s / c):.2f}s"
+    except Exception:
+        pass
+
+    return JSONResponse(content={
+        "total_crashes": crashes,
+        "avg_latency": avg_latency
+    })
 
 
 @app.get("/stream")

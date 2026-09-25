@@ -49,6 +49,10 @@ async def handle_crash_event(container_id: str, docker: aiodocker.Docker):
         safe_env_vars = mask_sensitive_env_vars(raw_env_vars)
         env_snapshot = json.dumps(safe_env_vars)
 
+        # Truncate env snapshot to prevent token limit errors
+        if len(env_snapshot) > 3000:
+            env_snapshot = env_snapshot[:3000] + "... [TRUNCATED DUE TO SIZE]"
+
         # Get logs from the last 5 minutes (300 seconds)
         since_time = int(now - 300)
         logs = ""
@@ -62,6 +66,11 @@ async def handle_crash_event(container_id: str, docker: aiodocker.Docker):
         except Exception as e:
             logger.warning(f"Failed to fetch logs for {container_name}: {e}")
             logs = "Logs unavailable."
+
+        # Truncate logs to prevent token limit errors
+        if len(logs) > 6000:
+            # Keep the last 6000 characters as they are usually the most relevant for crashes
+            logs = "[TRUNCATED] ... " + logs[-6000:]
 
         # Pass to AI
         logger.info(f"Classifying crash for {container_name} via AI...")
