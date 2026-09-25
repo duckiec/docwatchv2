@@ -1,6 +1,6 @@
-<div class="bg-gray-900 rounded-xl border border-red-500/20 shadow-lg overflow-hidden transition-all hover:border-red-500/40 group">
+<div class="incident-card bg-gray-900 rounded-xl border border-red-500/20 shadow-lg overflow-hidden transition-all hover:border-red-500/40 hover:shadow-red-500/10 group">
     <!-- Header -->
-    <div class="px-6 py-4 border-b border-gray-800 bg-gray-900/50 flex flex-wrap items-center justify-between gap-4">
+    <div class="px-6 py-4 border-b border-gray-800 bg-gray-900/80 flex flex-wrap items-center justify-between gap-4 backdrop-blur-sm">
         <div class="flex items-center space-x-3">
             <span class="flex h-3 w-3 relative">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -57,13 +57,13 @@
         </div>
 
         <!-- Details (Logs & Env) Accordion via details/summary -->
-        <details class="group/details">
-            <summary class="cursor-pointer text-sm font-medium text-gray-400 hover:text-white flex items-center transition-colors select-none">
-                <svg class="w-4 h-4 mr-1.5 transition-transform group-open/details:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                View Pre-Crash Logs & Environment
+        <details class="group/details bg-gray-800/30 rounded-lg border border-gray-700/50 p-2">
+            <summary class="cursor-pointer text-sm font-medium text-gray-400 hover:text-white flex items-center transition-colors select-none p-2 rounded hover:bg-gray-800/50">
+                <svg class="w-4 h-4 mr-2 transition-transform duration-200 group-open/details:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                View Diagnostics (Logs & Environment)
             </summary>
             
-            <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="mt-4 p-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <!-- Logs -->
                 <div>
                     <h5 class="text-xs text-gray-500 mb-2 uppercase tracking-wider">Pre-Crash Logs</h5>

@@ -21,20 +21,29 @@ async def execute_docker_fix(command: str) -> Tuple[bool, str]:
         return False, "Empty command after parsing."
 
     # Security Validation
-    # Allow `docker`, `docker compose`, `docker-compose`
+    # Allow strict whitelist of docker commands
     base_cmd = args[0]
     is_valid = False
     
-    if base_cmd == "docker":
-        is_valid = True
-    elif base_cmd == "docker-compose":
-        is_valid = True
-    elif base_cmd == "docker" and len(args) > 1 and args[1] == "compose":
-        is_valid = True
+    # Whitelist of allowed subcommands
+    ALLOWED_SUBCOMMANDS = {"restart", "start", "stop", "logs", "network", "compose"}
 
-    if not is_valid:
+    # Block potentially dangerous flags
+    DANGEROUS_FLAGS = {"-v", "--volume", "--privileged", "--pid", "--network=host"}
+
+    if base_cmd == "docker":
+        if len(args) > 1 and args[1] in ALLOWED_SUBCOMMANDS:
+            is_valid = True
+    elif base_cmd == "docker-compose":
+        if len(args) > 1 and args[1] in {"up", "down", "restart", "start", "stop", "logs"}:
+            is_valid = True
+
+    # Check for dangerous flags anywhere in the command
+    has_dangerous_flag = any(flag in args for flag in DANGEROUS_FLAGS)
+
+    if not is_valid or has_dangerous_flag:
         logger.warning(f"Rejected unsafe command execution: {command}")
-        return False, "Security Policy Violation: Only 'docker' or 'docker compose' commands are allowed."
+        return False, "Security Policy Violation: Command is either not in whitelist or contains dangerous flags."
 
     logger.info(f"Executing remediation command: {args}")
     try:
