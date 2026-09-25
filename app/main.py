@@ -7,6 +7,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from starlette.responses import Response
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings, logger
 from app.db import init_db, get_recent_incidents, get_incident_by_id
@@ -31,6 +33,28 @@ async def lifespan(app: FastAPI):
     cancel_all_tasks()
 
 app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
+
+# Global Error Handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception during {request.method} {request.url.path}: {str(exc)}")
+    # Log the traceback in development, hide it in production. Here we just return a generic error.
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"}
+    )
+
+# Security Headers Middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Setup Templates and Static
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -63,9 +87,14 @@ async def stream_incidents(request: Request):
         q = register_sse_client()
         try:
             while True:
-                # If client disconnects, request.is_disconnected() might be true, but it's checked slowly.
-                # Wait for an incident
-                incident = await q.get()
+                if await request.is_disconnected():
+                    break
+
+                try:
+                    # Wait for an incident with a short timeout to periodically check disconnect status
+                    incident = await asyncio.wait_for(q.get(), timeout=2.0)
+                except asyncio.TimeoutError:
+                    continue
                 
                 # Render the incident row using Jinja2
                 html = templates.get_template("components/incident_card.html").render(

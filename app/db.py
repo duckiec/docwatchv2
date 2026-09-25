@@ -15,7 +15,7 @@ class Incident(Base):
     id = Column(Integer, primary_key=True, index=True)
     container_name = Column(String(255), index=True, nullable=False)
     image_hash = Column(String(255), nullable=True)
-    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
     logs_context = Column(Text, nullable=True)
     env_snapshot = Column(Text, nullable=True)  # JSON string
     
@@ -25,11 +25,24 @@ class Incident(Base):
     ai_latency_ms = Column(Integer, nullable=True)
 
 # Remove the sqlite+aiosqlite:// prefix if user just passed a raw path, but in config we default to sqlite+aiosqlite:////data/docwatch.db
+# We inject pragmas to enable WAL mode for vastly improved concurrent performance with SQLite
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,
-    connect_args={"check_same_thread": False} # needed for SQLite
+    connect_args={"check_same_thread": False}, # needed for SQLite
 )
+
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+
+@event.listens_for(engine.sync_engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    if settings.DATABASE_URL.startswith("sqlite"):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA cache_size=-20000")
+        cursor.close()
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,

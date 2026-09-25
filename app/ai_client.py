@@ -9,7 +9,8 @@ from app.config import settings, logger
 
 client = openai.AsyncOpenAI(
     api_key=settings.AI_API_KEY if settings.AI_API_KEY else "dummy",
-    base_url=settings.AI_BASE_URL
+    base_url=settings.AI_BASE_URL,
+    timeout=15.0  # Prevent hanging indefinitely on AI calls
 )
 
 SYSTEM_PROMPT = """
